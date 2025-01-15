@@ -57,16 +57,19 @@ services:
     image: wiziscool/onesub:latest
     container_name: onesub
     ports:
-      - "3000:3000"  #外部端口:内部端口
+      - "3000:3000"  # 将容器的3000端口映射到主机
     environment:
-      - GITHUB_CLIENT_ID=你的GITHUB CLIENT ID
-      - GITHUB_CLIENT_SECRET=你的GITHUB SECRET ID
-      - BASE_URL=http://你的访问域名
+      - GITHUB_CLIENT_ID=your_client_id  # 替换为您的GitHub OAuth应用的Client ID
+      - GITHUB_CLIENT_SECRET=your_client_secret  # 替换为您的GitHub OAuth应用的Client Secret
+      - BASE_URL=http://localhost:3000  # 替换为您的服务地址
     restart: always
     volumes:
-      - ./database:/app/database
-```
+      - ./database:/app/database  # 将主机的 database 目录挂载到容器中
 
+```
+  **注意**：
+  - 若您尚未创建 GitHub OAuth 应用，请前往 [GitHub Developer Settings](https://github.com/settings/developers) 创建一个应用。
+  - 请将 Authorization callback URL 设置为 http://<您的服务地址>/auth/github/callback。
 ### 2. 配置环境变量
 
 将 **GITHUB_CLIENT_ID** 和 **GITHUB_CLIENT_SECRET** 替换为您的 GitHub OAuth 应用信息，并确保 **BASE_URL** 为您的服务地址。
