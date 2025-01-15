@@ -1,0 +1,10 @@
+version: '3.9'
+services:
+  onesub:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      GITHUB_CLIENT_ID: your_client_id
+      GITHUB_CLIENT_SECRET: your_client_secret
+      BASE_URL: http://localhost:3000
