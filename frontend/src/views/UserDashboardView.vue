@@ -1,35 +1,63 @@
 <template>
   <div class="subscription-container">
-    <h1>订阅管理系统</h1>
+    <h1 class="title">OneSub</h1>
     <el-card class="subscription-card">
       <div class="header">
         <h2>订阅列表</h2>
-        <el-button type="primary" circle icon="el-icon-plus" @click="openAddSubscriptionModal">新增</el-button>
+        <div class="header-buttons">
+          <el-button type="danger" plain size="medium" @click="logout" class="logout-btn">
+            <el-icon>
+              <SwitchButton />
+            </el-icon> 登出
+          </el-button>
+          <el-button type="primary" plain size="medium" @click="openAddSubscriptionModal">
+            <el-icon>
+              <Plus />
+            </el-icon> 添加
+          </el-button>
+        </div>
       </div>
 
-      <el-table :data="subscriptions" style="width: 100%">
-        <el-table-column prop="name" label="名称" />
-        <el-table-column label="链接数量" width="120">
+      <el-table :data="subscriptions" class="subscription-table">
+        <el-table-column prop="name" label="名称" align="center" />
+        <el-table-column label="链接数量" align="center" width="120">
           <template #default="scope">
             {{ scope.row.links.length }}
           </template>
         </el-table-column>
-        <el-table-column label="订阅地址">
+        <el-table-column label="订阅地址" align="center" width="300">
           <template #default="scope">
-            <el-input :value="getSubscriptionLink(scope.row)" readonly></el-input>
-            <el-button type="primary" icon="el-icon-document-copy" circle
-              @click="copySubscriptionLink(scope.row)"></el-button>
+            <div class="link-container" @click="copySubscriptionLink(scope.row)">
+              <span class="link" :title="getSubscriptionLink(scope.row)">
+                {{ getSubscriptionLink(scope.row) }}
+              </span>
+            </div>
           </template>
         </el-table-column>
-        <el-table-column label="启用" width="100">
+        <el-table-column label="操作" align="center" width="200">
           <template #default="scope">
-            <el-switch v-model="scope.row.enabled" @change="toggleSubscriptionStatus(scope.row)"></el-switch>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="200">
-          <template #default="scope">
-            <el-button type="primary" icon="el-icon-edit" circle @click="editSubscription(scope.row)"></el-button>
-            <el-button type="danger" icon="el-icon-delete" circle @click="deleteSubscription(scope.row.id)"></el-button>
+            <el-space size="small">
+              <el-button type="primary" round size="small" @click="editSubscription(scope.row)">
+                <el-icon>
+                  <Edit />
+                </el-icon>
+              </el-button>
+              <el-button type="primary" round size="small" @click="copySubscriptionLink(scope.row)">
+                <el-icon>
+                  <DocumentCopy />
+                </el-icon>
+              </el-button>
+              <el-popconfirm title="确定要删除此订阅吗？" confirm-button-text="确定" cancel-button-text="取消" icon="el-icon-warning"
+                @confirm="deleteSubscription(scope.row.id)">
+                <template #reference>
+                  <el-button type="danger" round size="small">
+                    <el-icon>
+                      <Delete />
+                    </el-icon>
+                  </el-button>
+                </template>
+              </el-popconfirm>
+            </el-space>
           </template>
         </el-table-column>
       </el-table>
@@ -41,16 +69,28 @@
           <el-input v-model="newSubscription.name"></el-input>
         </el-form-item>
         <el-form-item label="订阅链接">
-          <div v-for="(link, index) in newSubscription.links" :key="index" class="link-input">
-            <el-input v-model="newSubscription.links[index]"></el-input>
-            <el-button type="danger" icon="el-icon-delete" circle @click="removeNewLink(index)"></el-button>
-          </div>
-          <el-button type="primary" icon="el-icon-plus" @click="addNewLink">添加链接</el-button>
+          <el-space direction="vertical" size="medium" fill>
+            <div v-for="(link, index) in newSubscription.links" :key="index" class="link-input">
+              <el-space size="small" alignment="center">
+                <el-input v-model="newSubscription.links[index]"></el-input>
+                <el-button type="danger" size="small" @click="removeNewLink(index)">
+                  <el-icon>
+                    <Delete />
+                  </el-icon>
+                </el-button>
+              </el-space>
+            </div>
+            <el-button type="primary" plain size="small" @click="addNewLink">
+              <el-icon>
+                <Plus />
+              </el-icon> 添加链接
+            </el-button>
+          </el-space>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="addSubscriptionModalVisible = false">取消</el-button>
-        <el-button type="primary" @click="onAddSubscription">确认</el-button>
+        <el-button plain @click="addSubscriptionModalVisible = false">取消</el-button>
+        <el-button type="primary" plain @click="onAddSubscription">确认</el-button>
       </template>
     </el-dialog>
 
@@ -60,21 +100,38 @@
           <el-input v-model="editSubscriptionData.name"></el-input>
         </el-form-item>
         <el-form-item label="订阅链接">
-          <div v-for="(link, index) in editSubscriptionData.links" :key="index" class="link-input">
-            <el-input v-model="editSubscriptionData.links[index]"></el-input>
-            <el-button type="danger" icon="el-icon-delete" circle @click="removeEditLink(index)"></el-button>
-          </div>
-          <el-button type="primary" icon="el-icon-plus" @click="addEditLink">添加链接</el-button>
+          <el-space direction="vertical" size="medium" fill>
+            <div v-for="(link, index) in editSubscriptionData.links" :key="index" class="link-input">
+              <el-space size="small" alignment="center">
+                <el-input v-model="editSubscriptionData.links[index]"></el-input>
+                <el-button type="danger" size="small" @click="removeEditLink(index)">
+                  <el-icon>
+                    <Delete />
+                  </el-icon>
+                </el-button>
+              </el-space>
+            </div>
+            <el-button plain type="primary" size="small" @click="addEditLink">
+              <el-icon>
+                <Plus />
+              </el-icon> 添加链接
+            </el-button>
+          </el-space>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="editSubscriptionModalVisible = false">取消</el-button>
-        <el-button type="primary" @click="onEditSubscription">保存</el-button>
+        <el-button plain @click="editSubscriptionModalVisible = false">取消</el-button>
+        <el-button type="primary" plain @click="onEditSubscription">保存</el-button>
       </template>
     </el-dialog>
 
-    <footer>
-      NodeInOne ©2025 Created by 董俊泽
+    <footer class="footer">
+      <div>
+        <a href="https://github.com/WizisCool" target="_blank" class="footer-link">@WizisCool</a>
+        <span> | </span>
+        <a href="https://github.com/WizisCool/OneSub" target="_blank" class="footer-link">项目仓库</a>
+      </div>
+      <div>OneSub ©2025</div>
     </footer>
   </div>
 </template>
@@ -157,6 +214,15 @@ export default {
         console.error(err);
       }
     },
+    async logout() {
+      try {
+        await axios.get('/logout');
+        window.location.href = '/';
+      } catch (err) {
+        ElMessage.error('登出失败，请稍后重试');
+        console.error(err);
+      }
+    },
     getSubscriptionLink(subscription) {
       return `${window.location.origin}/subscriptions/${subscription.id}`;
     },
@@ -191,7 +257,12 @@ export default {
   max-width: 800px;
   margin: 0 auto;
   padding: 20px;
-  text-align: center;
+}
+
+.title {
+  text-align: left;
+  font-size: 24px;
+  font-weight: bold;
 }
 
 .subscription-card {
@@ -205,16 +276,47 @@ export default {
   margin-bottom: 10px;
 }
 
-.link-input {
+.header-buttons {
   display: flex;
-  align-items: center;
   gap: 10px;
-  margin-bottom: 10px;
 }
 
-footer {
+.subscription-table .el-table__header-wrapper {
+  text-align: center;
+}
+
+.link-container {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.link {
+  color: #409eff;
+  text-decoration: none;
+  flex-grow: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.copy-btn {
+  margin-left: 5px;
+}
+
+.footer {
   margin-top: 30px;
   font-size: 14px;
   color: #aaa;
+  text-align: center;
+}
+
+.footer-link {
+  color: #409eff;
+  text-decoration: none;
+}
+
+.footer-link:hover {
+  text-decoration: underline;
 }
 </style>

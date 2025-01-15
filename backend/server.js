@@ -2,7 +2,7 @@ const express = require('express');
 const dotenv = require('dotenv');
 const sqlite3 = require('sqlite3').verbose();
 const passport = require('passport');
-const GitHubStrategy = require('passport-github').Strategy;
+const GitHubStrategy = require('passport-github2').Strategy;
 const session = require('express-session');
 const fs = require('fs');
 const path = require('path');
@@ -31,7 +31,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
                 links TEXT NOT NULL,
-                enabled INTEGER DEFAULT 1
+                enabled INTEGER NOT NULL DEFAULT 1
             )`);
     });
   }
@@ -66,8 +66,8 @@ passport.use(
   )
 );
 
-passport.serializeUser((user, done) => done(null, user.id));
-passport.deserializeUser((id, done) => done(null, { id }));
+passport.serializeUser((user, done) => done(null, user));
+passport.deserializeUser((user, done) => done(null, user));
 
 // Authentication routes
 app.get('/auth/github', passport.authenticate('github'));
@@ -75,7 +75,6 @@ app.get(
   '/auth/github/callback',
   passport.authenticate('github', { failureRedirect: '/' }),
   (req, res) => {
-    // Redirect to dashboard after successful login
     res.redirect('/dashboard');
   }
 );
@@ -89,28 +88,29 @@ app.get('/logout', (req, res) => {
   });
 });
 
+// Middleware to check authentication
+function ensureAuthenticated(req, res, next) {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.status(401).json({ error: 'Unauthorized' });
+}
+
 // API routes
 // Get all subscriptions
-app.get('/api/subscriptions', (req, res) => {
+app.get('/api/subscriptions', ensureAuthenticated, (req, res) => {
   db.all('SELECT * FROM subscriptions', (err, rows) => {
     if (err) return res.status(500).send(err.message);
-    res.json(
-      rows.map((row) => ({
-        id: row.id,
-        name: row.name,
-        links: JSON.parse(row.links),
-        enabled: !!row.enabled,
-      }))
-    );
+    res.json(rows.map(row => ({ ...row, links: JSON.parse(row.links), enabled: !!row.enabled })));
   });
 });
 
 // Add a new subscription
-app.post('/api/subscriptions', (req, res) => {
+app.post('/api/subscriptions', ensureAuthenticated, (req, res) => {
   const { name, links } = req.body;
   const linksJSON = JSON.stringify(links || []);
   db.run(
-    `INSERT INTO subscriptions (name, links, enabled) VALUES (?, ?, 1)`,
+    `INSERT INTO subscriptions (name, links) VALUES (?, ?)`,
     [name, linksJSON],
     function (err) {
       if (err) return res.status(500).send(err.message);
@@ -120,7 +120,7 @@ app.post('/api/subscriptions', (req, res) => {
 });
 
 // Update a subscription
-app.put('/api/subscriptions/:id', (req, res) => {
+app.put('/api/subscriptions/:id', ensureAuthenticated, (req, res) => {
   const subscriptionId = req.params.id;
   const { name, links } = req.body;
   const linksJSON = JSON.stringify(links);
@@ -134,11 +134,10 @@ app.put('/api/subscriptions/:id', (req, res) => {
   );
 });
 
-// Update subscription status
-app.put('/api/subscriptions/:id/status', (req, res) => {
+// Toggle subscription status
+app.put('/api/subscriptions/:id/status', ensureAuthenticated, (req, res) => {
   const subscriptionId = req.params.id;
   const { enabled } = req.body;
-
   db.run(
     'UPDATE subscriptions SET enabled = ? WHERE id = ?',
     [enabled ? 1 : 0, subscriptionId],
@@ -150,7 +149,7 @@ app.put('/api/subscriptions/:id/status', (req, res) => {
 });
 
 // Delete a subscription
-app.delete('/api/subscriptions/:id', (req, res) => {
+app.delete('/api/subscriptions/:id', ensureAuthenticated, (req, res) => {
   const subscriptionId = req.params.id;
   db.run('DELETE FROM subscriptions WHERE id = ?', [subscriptionId], (err) => {
     if (err) return res.status(500).send(err.message);
@@ -158,18 +157,35 @@ app.delete('/api/subscriptions/:id', (req, res) => {
   });
 });
 
-// Get subscription links (no auth, for tools like V2RayN)
+// Serve static files (for frontend integration)
+app.use(express.static(path.join(__dirname, 'frontend/dist')));
+
+// Public API for direct subscription link
 app.get('/subscriptions/:id', (req, res) => {
   const subscriptionId = req.params.id;
-  db.get('SELECT links, enabled FROM subscriptions WHERE id = ?', [subscriptionId], (err, row) => {
+  db.get('SELECT links FROM subscriptions WHERE id = ? AND enabled = 1', [subscriptionId], (err, row) => {
     if (err) return res.status(500).send(err.message);
-    if (!row || !row.enabled) return res.status(404).send('Subscription not found or disabled');
+    if (!row) return res.status(404).send('Subscription not found or disabled');
     res.type('text/plain').send(JSON.parse(row.links).join('\n'));
   });
 });
 
-// Serve static files (for frontend integration)
-app.use(express.static(path.join(__dirname, 'frontend/dist')));
+// Serve protected dashboard
+app.get('/dashboard', ensureAuthenticated, (req, res) => {
+  console.log('User:', req.user);
+  res.sendFile(path.join(__dirname, 'frontend/dist/index.html'));
+});
+
+app.get('/api/auth/status', (req, res) => {
+  if (req.isAuthenticated()) {
+    res.json({ authenticated: true, user: req.user });
+  } else {
+    res.json({ authenticated: false });
+  }
+});
+
+
+// Catch-all route for SPA
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'frontend/dist/index.html'));
 });
