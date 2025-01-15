@@ -1,10 +1,14 @@
-version: '3.9'
+version: '3.8'
 services:
   onesub:
-    build: .
+    image: wiziscool/onesub:latest  # 使用预构建的镜像
+    container_name: onesub
     ports:
-      - "3000:3000"
+      - "3000:3000"  # 将容器的3000端口映射到主机
     environment:
-      GITHUB_CLIENT_ID: your_client_id
-      GITHUB_CLIENT_SECRET: your_client_secret
-      BASE_URL: http://localhost:3000
+      - GITHUB_CLIENT_ID=your_client_id  # 替换为您的GitHub OAuth应用的Client ID
+      - GITHUB_CLIENT_SECRET=your_client_secret  # 替换为您的GitHub OAuth应用的Client Secret
+      - BASE_URL=http://localhost:3000  # 替换为您的服务地址
+    restart: always
+    volumes:
+      - ./database:/app/database  # 将主机的 database 目录挂载到容器中
