@@ -1,7 +1,7 @@
 version: '3.8'
 services:
   onesub:
-    image: wiziscool/onesub:latest  # 使用预构建的镜像
+    image: wiziscool/onesub:latest
     container_name: onesub
     ports:
       - "3000:3000"  # 将容器的3000端口映射到主机
