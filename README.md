@@ -16,16 +16,6 @@ OneSub 是一个开源的订阅管理平台，支持管理和生成代理节点�
 - **响应式设计**：基于 Element Plus UI 组件，界面美观现代。
 - **开源**：任何人都可以访问和使用源代码。
 
-## 项目结构
-
-OneSub
-├── backend               # 后端代码（Node.js + SQLite）
-├── frontend              # 前端代码（Vue.js + Element Plus）
-├── screenshots           # 项目截图
-├── LICENSE               # 许可证文件
-└── README.md             # 项目说明文件
-
-
 ---
 
 ## 技术栈
